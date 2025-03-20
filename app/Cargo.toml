@@ -1,0 +1,23 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+leptos.workspace = true
+leptos_meta.workspace = true
+leptos_router.workspace = true
+leptos_axum = { workspace = true, optional = true }
+leptos-mview.workspace = true
+leptos-use.workspace = true
+
+http.workspace = true
+cfg-if.workspace = true
+thiserror.workspace = true
+
+lipsum.workspace = true
+
+[features]
+default = []
+hydrate = ["leptos/hydrate"]
+ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "leptos-use/ssr", "dep:leptos_axum"]

@@ -1,0 +1,55 @@
+[workspace]
+resolver = "2"
+members = ["app", "frontend", "server"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
+
+[workspace.dependencies]
+leptos = { version = "0.7", features = ["nightly"] }
+leptos_meta = { version = "0.7"}
+leptos_router = { version = "0.7", features = ["nightly"] }
+leptos_axum = { version = "0.7" }
+leptos-mview = { version = "0.4" }
+leptos-use = { version = "0.15" }
+
+axum = "0.7"
+cfg-if = "1"
+console_error_panic_hook = "0.1"
+console_log = "1"
+http = "1"
+log = "0.4"
+simple_logger = "5"
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["full"] }
+wasm-bindgen = "0.2"
+
+lipsum = "0.9"
+
+[[workspace.metadata.leptos]]
+name = "app"
+env = "DEV"
+
+bin-package = "server"
+lib-package = "frontend"
+
+site-root = "target/site"
+site-pkg-dir = "pkg"
+style-file = "style/main.scss"
+assets-dir = "assets"
+
+site-addr = "[::0]:80"
+reload-port = 3001
+
+browserquery = "defaults"
+
+watch = false
+
+bin-features = []
+bin-default-features = false
+lib-features = []
+lib-default-features = false

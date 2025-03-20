@@ -1,0 +1,38 @@
+body {
+    margin: 0px;
+    font-size: 34px;
+    background-color: #1E1E1E;
+    font-family: Impact, sans-serif
+}
+
+p {
+    margin: 0px;
+}
+
+.reader {
+    text-align: justify;
+    font-size: 1em;
+    display: flex;
+    justify-content: center;
+    margin: 0.8em;
+}
+
+.page {
+    max-width: max(40em, 40%);
+}
+
+.paragraph {
+    line-height: 1.5;
+}
+
+.word {
+    border-radius: 0.25em;
+    color: #616161;
+}
+
+.word.highlight {
+    color: #c4c4c4;
+    background-color: #3c3c3c;
+    padding: 0.1em 0.2em;
+    margin: -0.1em -0.2em;
+}
