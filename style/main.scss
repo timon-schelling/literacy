@@ -1,4 +1,13 @@
+html {
+    margin: 0px;
+    padding: 0px;
+    inset: 0px;
+    height: 100%;
+}
+
 body {
+    height: 100%;
+    padding: 0px;
     margin: 0px;
     font-size: 34px;
     background-color: #1E1E1E;
@@ -10,6 +19,31 @@ p {
 }
 
 .reader {
+
+}
+
+.controls {
+    position: absolute;
+}
+
+.progress {
+    align: right;
+    height: calc();
+    width: 1.5em;
+    opacity: 0%;
+}
+
+.progress input[type="range"]{
+    writing-mode: vertical-lr;
+    height: 100%;
+    color: #3c3c3c;
+}
+
+.progress:hover {
+    opacity: 100%;
+}
+
+.pages {
     text-align: justify;
     font-size: 1em;
     display: flex;
