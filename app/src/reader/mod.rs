@@ -1,6 +1,8 @@
-use leptos::prelude::*;
+use std::usize;
+
+use leptos::{logging, prelude::*};
 use leptos_mview::mview;
-use leptos_use::{UseIntervalOptions, UseIntervalReturn, use_interval_with_options};
+use leptos_use::{use_interval_with_options, UseIntervalOptions, UseIntervalReturn};
 use lipsum::lipsum;
 
 mod controls;
@@ -8,34 +10,34 @@ mod pages;
 
 #[component]
 pub(crate) fn Reader() -> impl IntoView {
-    let text_offset = RwSignal::new(0u32);
-
-    let text_length = 100u32;
-
-    let text_gen = move |length: u32| lipsum(length.try_into().unwrap_or(text_length as usize));
-    let text = text_gen(text_length);
+    let word_number = 1000;
+    let words_per_page = 100;
+    let pages_number = (word_number / words_per_page).clamp(1, usize::MAX);
+    let text = lipsum(word_number);
     let text = text
         .split_whitespace()
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
 
-    let (content, set_content) = signal(text);
+    let page = RwSignal::new(0);
+    let text_offset = RwSignal::new(0);
+    Effect::new(move || {
+        let current_page = page.get();
+        if current_page >= pages_number {
+            page.set(pages_number - 1);
+        }
+        text_offset.set(current_page * words_per_page);
+    });
 
-    // let UseIntervalReturn {
-    //     counter: new_text, ..
-    // } = use_interval(3000);
-    // Effect::new(move || {
-    //     new_text.get();
-    //     let offset = text_offset.get_untracked();
-    //     let new = text_gen(text_length + offset)
-    //         .split_whitespace()
-    //         .skip(offset as usize)
-    //         .map(|s| s.to_string())
-    //         .collect::<Vec<String>>();
-    //     logging::log!("{}", new.join(" "));
-    //     set_content.set(new);
-    //     text_offset.set(offset + 1);
-    // });
+    let text = RwSignal::new(text);
+
+    let content: RwSignal<Vec<String>> = RwSignal::new(vec![]);
+
+    Effect::new(move || {
+        let offset = text_offset.get();
+        let new = text.get().into_iter().skip(offset).take(words_per_page).to_owned().collect::<Vec<String>>();
+        content.set(new);
+    });
 
     let content_length = RwSignal::new(0u32);
 
@@ -49,7 +51,7 @@ pub(crate) fn Reader() -> impl IntoView {
         resume: counter_resume,
         is_active: counter_is_active,
         ..
-    } = use_interval_with_options(550, UseIntervalOptions::default().immediate(false));
+    } = use_interval_with_options(200, UseIntervalOptions::default().immediate(false));
     let counter_pause_clone = counter_pause.clone();
     Effect::new(move || {
         counter.get();
@@ -57,9 +59,13 @@ pub(crate) fn Reader() -> impl IntoView {
         if content_length > 0 {
             content_length -= 1;
         }
-        if progress.get_untracked().unwrap_or(0) + 1 > content_length {
-            counter_pause_clone();
-            progress_write.set(None);
+        if progress.get_untracked().unwrap_or(0) + 1 > content_length && content_length > 0 {
+            if page.get_untracked() >= pages_number - 1 {
+                counter_pause_clone();
+                progress_write.set(None);
+                return;
+            }
+            page.update(|n| if *n < usize::MAX { *n += 1 });
             return;
         }
         if !counter_is_active.get() {
@@ -75,7 +81,7 @@ pub(crate) fn Reader() -> impl IntoView {
     let content_clone = content.clone();
     Effect::new(move || {
         content_clone.get();
-        progress_write.set(None);
+        progress_write.update(move |o| *o = None);
         counter_reset();
     });
 
@@ -93,8 +99,8 @@ pub(crate) fn Reader() -> impl IntoView {
 
     mview! {
         div.reader {
-            controls::Controls progress={progress_write} {playing} content_length={content_length.read_only()};
-            pages::Pages {content} highlight={progress};
+            controls::Controls {page} {playing} progress={progress_write} content_length={content_length.read_only()};
+            pages::Pages content={content.read_only()} highlight={progress};
         }
     }
 }

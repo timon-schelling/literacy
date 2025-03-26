@@ -3,8 +3,8 @@ use leptos_mview::mview;
 
 #[component]
 pub(crate) fn Pages(
-    content: ReadSignal<Vec<String>>,
-    highlight: ReadSignal<Option<u32>>,
+    #[prop(into)] content: ReadSignal<Vec<String>>,
+    #[prop(into)] highlight: ReadSignal<Option<u32>>,
 ) -> impl IntoView {
     mview! {
         div.pages {
@@ -14,20 +14,28 @@ pub(crate) fn Pages(
 }
 
 #[component]
-fn Page(content: ReadSignal<Vec<String>>, highlight: ReadSignal<Option<u32>>) -> impl IntoView {
+fn Page(
+    #[prop(into)] content: Signal<Vec<String>>,
+    #[prop(into)] highlight: Signal<Option<u32>>,
+) -> impl IntoView {
+    let text = Memo::new(move |_| content.get());
+
     mview! {
         div.page {
-            Paragraph text={content()} {highlight};
+            Paragraph {text} {highlight};
         }
     }
 }
 
 #[component]
-fn Paragraph(text: Vec<String>, highlight: ReadSignal<Option<u32>>) -> impl IntoView {
+fn Paragraph(
+    #[prop(into)] text: Signal<Vec<String>>,
+    #[prop(into)] highlight: Signal<Option<u32>>,
+) -> impl IntoView {
     mview! {
         p.paragraph {
             {
-                move || text
+                move || text.get()
                     .iter()
                     .enumerate()
                     .map(|(i, w)| {
@@ -44,13 +52,13 @@ fn Paragraph(text: Vec<String>, highlight: ReadSignal<Option<u32>>) -> impl Into
 }
 
 #[component]
-fn Word(text: String, highlight: bool) -> impl IntoView {
+fn Word(#[prop(into)] text: String, highlight: bool) -> impl IntoView {
     mview! {
         span.word class:highlight={move || highlight} {
             { text }
         }
         span {
-            ""
+            " "
         }
     }
 }

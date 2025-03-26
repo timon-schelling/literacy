@@ -5,20 +5,24 @@ use leptos_mview::mview;
 
 #[component]
 pub(crate) fn Controls(
-    progress: RwSignal<Option<u32>>,
-    playing: RwSignal<bool>,
-    content_length: ReadSignal<u32>,
+    #[prop(into)] page: RwSignal<usize>,
+    #[prop(into)] playing: RwSignal<bool>,
+    #[prop(into)] content_length: Signal<u32>,
+    #[prop(into)] progress: RwSignal<Option<u32>>,
 ) -> impl IntoView {
     mview! {
         div.controls {
             Progress {progress} {content_length};
-            Bar {playing};
+            Bar {playing} {page};
         }
     }
 }
 
 #[component]
-fn Progress(progress: RwSignal<Option<u32>>, content_length: ReadSignal<u32>) -> impl IntoView {
+fn Progress(
+    #[prop(into)] content_length: Signal<u32>,
+    #[prop(into)] progress: RwSignal<Option<u32>>,
+) -> impl IntoView {
     let internal = RwSignal::new("".to_string());
     Effect::new(move || internal.set(progress.get().unwrap_or(0).to_string()));
     Effect::new(move || {
@@ -43,22 +47,29 @@ fn Progress(progress: RwSignal<Option<u32>>, content_length: ReadSignal<u32>) ->
 }
 
 #[component]
-fn Bar(playing: RwSignal<bool>) -> impl IntoView {
+fn Bar(
+    #[prop(into)] page: RwSignal<usize>,
+    #[prop(into)] playing: RwSignal<bool>,
+) -> impl IntoView {
     mview! {
         div.bar {
             button {
-                Icon icon={icons::FaBackwardStepSolid};
+                Icon
+                    icon={icons::FaBackwardStepSolid}
+                    on:click={move |_| page.update(|n| if *n > usize::MIN { *n -= 1 })};
             }
             PlayPauseButton {playing};
             button {
-                Icon icon={icons::FaForwardStepSolid};
+                Icon
+                    icon={icons::FaForwardStepSolid}
+                    on:click={move |_| page.update(|n| if *n < usize::MAX { *n += 1 })};
             }
         }
     }
 }
 
 #[component]
-fn PlayPauseButton(playing: RwSignal<bool>) -> impl IntoView {
+fn PlayPauseButton(#[prop(into)] playing: RwSignal<bool>) -> impl IntoView {
     mview! {
         button on:click={move |_| playing.set(!playing.get_untracked())} {
             PlayPauseIcon {playing};
