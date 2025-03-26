@@ -1,0 +1,50 @@
+.controls {
+    position: fixed;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+
+    .progress {
+        flex: 1;
+        width: 5vw;
+        padding-left: 0.4em;
+        display: flex;
+        height: 100%;
+        opacity: 0%;
+
+        input[type="range"]{
+            writing-mode: vertical-lr;
+            color: #3c3c3c;
+            width: 0.5em;
+        }
+        &:hover {
+            opacity: 100%;
+        }
+    }
+
+    .bar {
+        display: flex;
+        justify-content: center;
+        margin: 0.35em 0.3em;
+        background-color: #252525;
+        border-radius: 0.3em;
+
+        &>button {
+            margin: 1em 0.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 3em;
+            height: 3em;
+            background: none;
+            border: none;
+            color: #858585;
+        }
+
+        &>button>svg {
+            font-size: 2em;
+        }
+    }
+}

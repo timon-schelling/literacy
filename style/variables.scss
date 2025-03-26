@@ -1,3 +1,7 @@
+@import 'variables';
+
+@import 'reader/main';
+
 html {
     margin: 0px;
     padding: 0px;
@@ -17,5 +21,3 @@ body {
 p {
     margin: 0px;
 }
-
-@import 'reader/main';
