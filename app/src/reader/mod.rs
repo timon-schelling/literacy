@@ -2,11 +2,12 @@ use std::usize;
 
 use leptos::{logging, prelude::*};
 use leptos_mview::mview;
-use leptos_use::{use_interval_with_options, UseIntervalOptions, UseIntervalReturn};
+use leptos_use::{UseIntervalOptions, UseIntervalReturn, use_interval_with_options};
 use lipsum::lipsum;
 
 mod controls;
 mod pages;
+pub mod audio;
 
 #[component]
 pub(crate) fn Reader() -> impl IntoView {
@@ -35,7 +36,13 @@ pub(crate) fn Reader() -> impl IntoView {
 
     Effect::new(move || {
         let offset = text_offset.get();
-        let new = text.get().into_iter().skip(offset).take(words_per_page).to_owned().collect::<Vec<String>>();
+        let new = text
+            .get()
+            .into_iter()
+            .skip(offset)
+            .take(words_per_page)
+            .to_owned()
+            .collect::<Vec<String>>();
         content.set(new);
     });
 
@@ -65,7 +72,11 @@ pub(crate) fn Reader() -> impl IntoView {
                 progress_write.set(None);
                 return;
             }
-            page.update(|n| if *n < usize::MAX { *n += 1 });
+            page.update(|n| {
+                if *n < usize::MAX {
+                    *n += 1
+                }
+            });
             return;
         }
         if !counter_is_active.get() {
