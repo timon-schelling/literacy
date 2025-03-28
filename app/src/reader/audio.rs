@@ -1,6 +1,7 @@
 use leptos::logging;
 use rand::RngCore;
 use std::cell::RefCell;
+use std::sync::Arc;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::js_sys::Uint8Array;
@@ -50,12 +51,39 @@ impl TrackInternal {
     }
 }
 
+#[derive(Clone)]
 pub struct Track {
-    id: [u8; 32],
+    inner: Arc<TrackInner>,
 }
 
 impl Track {
     pub async fn new(source: &[u8]) -> Self {
+        Self { inner: Arc::new(TrackInner::new(source).await) }
+    }
+
+    pub fn prepare(&self) {
+        self.inner.prepare();
+    }
+
+    pub fn play(&self) {
+        self.inner.play();
+    }
+
+    pub fn pause(&self) {
+        self.inner.pause();
+    }
+
+    pub fn stop(&self) {
+        self.inner.stop();
+    }
+}
+
+struct TrackInner {
+    id: [u8; 32]
+}
+
+impl TrackInner {
+    async fn new(source: &[u8]) -> Self {
         let uint8_array = Uint8Array::from(source);
         let promise = AUDIO_PLAYER_INTERNAL
             .with_borrow_mut(|p| p.context.decode_audio_data(&uint8_array.buffer()))
@@ -75,7 +103,7 @@ impl Track {
         Self { id }
     }
 
-    pub fn prepare(&mut self) {
+    fn prepare(&self) {
         let i = self.internal_index();
         AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
             let internal = p
@@ -92,7 +120,7 @@ impl Track {
         });
     }
 
-    pub fn play(&mut self) {
+    fn play(&self) {
         self.prepare();
         let i = self.internal_index();
         AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
@@ -119,7 +147,7 @@ impl Track {
         });
     }
 
-    pub fn pause(&mut self) {
+    fn pause(&self) {
         let i = self.internal_index();
         AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
             let internal = p.tracks.get_mut(i).expect("failed to stop");
@@ -127,10 +155,10 @@ impl Track {
                 return;
             }
             if let Some(node) = &internal.node {
-                // node.stop().expect("failed to stop");
-                node.disconnect().expect("failed to disconnect");
                 let current_time = p.context.current_time();
-                internal.offset += current_time - internal.start_time;
+                node.stop().expect("failed to stop");
+                node.disconnect().expect("failed to disconnect");
+                internal.offset = current_time - internal.start_time;
                 internal.is_playing = false;
                 internal.node = None;
                 logging::log!("pause done");
@@ -138,7 +166,7 @@ impl Track {
         });
     }
 
-    pub fn stop(&mut self) {
+    fn stop(&self) {
         let i = self.internal_index();
         AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
             let internal = p.tracks.get_mut(i).expect("failed to stop");
@@ -146,7 +174,7 @@ impl Track {
                 return;
             }
             if let Some(node) = &internal.node {
-                // node.stop().expect("failed to stop");
+                node.stop().expect("failed to stop");
                 node.disconnect().expect("failed to disconnect");
                 internal.offset = 0.0;
                 internal.is_playing = false;
@@ -173,10 +201,11 @@ impl Track {
         AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
             _ = p.tracks.swap_remove(i);
         });
+        logging::log!("remove done");
     }
 }
 
-impl Drop for Track {
+impl Drop for TrackInner {
     fn drop(&mut self) {
         self.internal_remove();
     }

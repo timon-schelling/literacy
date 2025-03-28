@@ -1,5 +1,6 @@
 use std::usize;
 
+use audio::Track;
 use leptos::{logging, prelude::*};
 use leptos_mview::mview;
 use leptos_use::{UseIntervalOptions, UseIntervalReturn, use_interval_with_options};
@@ -9,16 +10,37 @@ mod controls;
 mod pages;
 pub mod audio;
 
+async fn load_audio_buffer(url: &str) -> Vec<u8> {
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_futures::JsFuture;
+    use web_sys::{js_sys::Uint8Array, Response};
+    let resp_value = JsFuture::from(window().fetch_with_str(url)).await.expect("failed to fetch audio");
+    let resp: Response = resp_value.dyn_into().expect("failed to fetch audio");
+    let buffer = JsFuture::from(resp.array_buffer().expect("failed to fetch audio")).await.expect("failed to fetch audio");
+    let u8_array = Uint8Array::new(&buffer);
+    u8_array.to_vec()
+}
+
 #[component]
 pub(crate) fn Reader() -> impl IntoView {
-    let word_number = 1000;
-    let words_per_page = 100;
-    let pages_number = (word_number / words_per_page).clamp(1, usize::MAX);
-    let text = lipsum(word_number);
+    let text = lipsum(1000);
     let text = text
         .split_whitespace()
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
+    let word_number = text.len();
+    let words_per_page = 100;
+    let pages_number = (word_number / words_per_page).clamp(1, usize::MAX);
+
+    let audio_resource = LocalResource::new(
+        async move || Track::new(load_audio_buffer("./out1.wav").await.as_ref()).await,
+    );
+    let audio: RwSignal<Option<Track>> = RwSignal::new(None);
+    Effect::new(move || {
+        if let Some(r) = audio_resource.get() {
+            audio.set(Some(r.take()));
+        }
+    });
 
     let page = RwSignal::new(0);
     let text_offset = RwSignal::new(0);
@@ -105,6 +127,14 @@ pub(crate) fn Reader() -> impl IntoView {
     Effect::new(move || {
         if progress.get().is_none() {
             playing.set(false)
+        }
+    });
+
+    Effect::new(move || {
+        match (playing.get(), audio.get_untracked()) {
+            (true, Some(a)) => a.play(),
+            (false, Some(a)) => a.pause(),
+            _ => { },
         }
     });
 
