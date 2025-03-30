@@ -57,9 +57,7 @@ rand = "0.9"
 getrandom = { version = "0.3", features = [ "wasm_js" ] }
 
 leptos_icons = "0.5"
-icondata = "0.5"
-
-lipsum = "0.9"
+icondata = { version = "0.5", default-features = false, features = [ "font-awesome" ] }
 
 [[workspace.metadata.leptos]]
 name = "app"

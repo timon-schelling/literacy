@@ -156,6 +156,7 @@ impl TrackInner {
             }
             if let Some(node) = &internal.node {
                 let current_time = p.context.current_time();
+                #[allow(deprecated)]
                 node.stop().expect("failed to stop");
                 node.disconnect().expect("failed to disconnect");
                 internal.offset = current_time - internal.start_time;
@@ -174,6 +175,7 @@ impl TrackInner {
                 return;
             }
             if let Some(node) = &internal.node {
+                #[allow(deprecated)]
                 node.stop().expect("failed to stop");
                 node.disconnect().expect("failed to disconnect");
                 internal.offset = 0.0;

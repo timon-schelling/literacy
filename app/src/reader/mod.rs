@@ -1,10 +1,9 @@
 use std::usize;
 
 use audio::Track;
-use leptos::{logging, prelude::*};
+use leptos::prelude::*;
 use leptos_mview::mview;
 use leptos_use::{UseIntervalOptions, UseIntervalReturn, use_interval_with_options};
-use lipsum::lipsum;
 
 mod controls;
 mod pages;
@@ -23,17 +22,17 @@ async fn load_audio_buffer(url: &str) -> Vec<u8> {
 
 #[component]
 pub(crate) fn Reader() -> impl IntoView {
-    let text = lipsum(1000);
+    let text = include_str!("../../../assets/text.txt");
     let text = text
         .split_whitespace()
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
     let word_number = text.len();
     let words_per_page = 100;
-    let pages_number = (word_number / words_per_page).clamp(1, usize::MAX);
+    let pages_number = (word_number / words_per_page) + 1;
 
     let audio_resource = LocalResource::new(
-        async move || Track::new(load_audio_buffer("./out1.wav").await.as_ref()).await,
+        async move || Track::new(load_audio_buffer("./audio.wav").await.as_ref()).await,
     );
     let audio: RwSignal<Option<Track>> = RwSignal::new(None);
     Effect::new(move || {
@@ -80,7 +79,7 @@ pub(crate) fn Reader() -> impl IntoView {
         resume: counter_resume,
         is_active: counter_is_active,
         ..
-    } = use_interval_with_options(200, UseIntervalOptions::default().immediate(false));
+    } = use_interval_with_options(350, UseIntervalOptions::default().immediate(false));
     let counter_pause_clone = counter_pause.clone();
     Effect::new(move || {
         counter.get();
