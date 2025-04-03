@@ -1,0 +1,105 @@
+{
+  "nodes": {
+    "disko": {
+      "inputs": {
+        "nixpkgs": [
+          "original",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1741786315,
+        "narHash": "sha256-VT65AE2syHVj6v/DGB496bqBnu1PXrrzwlw07/Zpllc=",
+        "owner": "nix-community",
+        "repo": "disko",
+        "rev": "0d8c6ad4a43906d14abd5c60e0ffe7b587b213de",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "disko",
+        "type": "github"
+      }
+    },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "original",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1741791118,
+        "narHash": "sha256-4Y427uj0eql4yRU5rely3EcOlB9q457UDbG9omPtXiA=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "18780912345970e5b546b1b085385789b6935a83",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "impermanence": {
+      "locked": {
+        "lastModified": 1737831083,
+        "narHash": "sha256-LJggUHbpyeDvNagTUrdhe/pRVp4pnS6wVKALS782gRI=",
+        "owner": "nix-community",
+        "repo": "impermanence",
+        "rev": "4b3e914cdf97a5b536a889e939fb2fd2b043a170",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "impermanence",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1741513245,
+        "narHash": "sha256-7rTAMNTY1xoBwz0h7ZMtEcd8LELk9R5TzBPoHuhNSCk=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "e3e32b642a31e6714ec1b712de8c91a3352ce7e1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "original": {
+      "inputs": {
+        "disko": "disko",
+        "home-manager": "home-manager",
+        "impermanence": "impermanence",
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1742995169,
+        "narHash": "sha256-ILO54SC8XqbQ4E6JHsUZMltjHNXtMN1L5e1xDVhRqZc=",
+        "owner": "timon-schelling",
+        "repo": "timonos",
+        "rev": "7b56ccb6e760ece2e60f99ce5765bc527f5c11e5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "timon-schelling",
+        "repo": "timonos",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "original": "original"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
