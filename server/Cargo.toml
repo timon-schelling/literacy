@@ -4,7 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+common = { path = "../common" }
 app = { path = "../app", default-features = false, features = ["ssr"] }
+
 leptos = { workspace = true, features = [ "ssr" ]}
 leptos_axum.workspace = true
 

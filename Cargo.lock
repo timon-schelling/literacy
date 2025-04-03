@@ -79,6 +79,7 @@ name = "app"
 version = "0.1.0-rc1"
 dependencies = [
  "cfg-if",
+ "common",
  "getrandom 0.3.2",
  "http",
  "icondata",
@@ -354,6 +355,13 @@ checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0-rc1"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
@@ -2218,6 +2226,7 @@ version = "0.1.0-rc1"
 dependencies = [
  "app",
  "axum",
+ "common",
  "leptos",
  "leptos_axum",
  "log",
