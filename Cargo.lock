@@ -91,6 +91,7 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "rand 0.9.0",
+ "serde_json",
  "thiserror 2.0.12",
  "wasm-bindgen",
  "wasm-bindgen-futures",

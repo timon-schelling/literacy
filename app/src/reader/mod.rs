@@ -1,27 +1,57 @@
 use std::usize;
 
 use audio::Track;
+use common::{Segment, Wav};
 use leptos::prelude::*;
 use leptos_mview::mview;
 use leptos_use::{UseIntervalOptions, UseIntervalReturn, use_interval_with_options};
 
+mod audio;
 mod controls;
 mod pages;
-pub mod audio;
 
-async fn load_audio_buffer(url: &str) -> Vec<u8> {
+mod helper {
     use wasm_bindgen::JsCast;
     use wasm_bindgen_futures::JsFuture;
-    use web_sys::{js_sys::Uint8Array, Response};
-    let resp_value = JsFuture::from(window().fetch_with_str(url)).await.expect("failed to fetch audio");
-    let resp: Response = resp_value.dyn_into().expect("failed to fetch audio");
-    let buffer = JsFuture::from(resp.array_buffer().expect("failed to fetch audio")).await.expect("failed to fetch audio");
-    let u8_array = Uint8Array::new(&buffer);
-    u8_array.to_vec()
+    use web_sys::{
+        Response,
+        js_sys::{JsString, Uint8Array},
+        window,
+    };
+
+    async fn request(url: &str) -> Response {
+        let response = JsFuture::from(window().expect("request failed").fetch_with_str(url))
+            .await
+            .expect("request failed");
+        response.dyn_into().expect("request failed")
+    }
+
+    pub(super) async fn load_bytes(url: &str) -> Vec<u8> {
+        let response = request(url).await;
+        let buffer = JsFuture::from(response.array_buffer().expect("loading bytes failed"))
+            .await
+            .expect("loading bytes failed");
+        let u8_array = Uint8Array::new(&buffer);
+        u8_array.to_vec()
+    }
+
+    pub(super) async fn load_text(url: &str) -> String {
+        let response = request(url).await;
+        let text = JsFuture::from(response.text().expect("loading bytes text"))
+            .await
+            .expect("loading bytes text")
+            .dyn_into::<JsString>()
+            .expect("loading bytes text");
+        text.into()
+    }
 }
 
 #[component]
 pub(crate) fn Reader() -> impl IntoView {
+    let segment: LocalResource<Segment> = LocalResource::new(async move || {
+        serde_json::from_str(helper::load_text("./segment.json").await.as_str()).expect("expected segment as json")
+    });
+
     let text = include_str!("../../../assets/text.txt");
     let text = text
         .split_whitespace()
@@ -31,9 +61,18 @@ pub(crate) fn Reader() -> impl IntoView {
     let words_per_page = 100;
     let pages_number = (word_number / words_per_page) + 1;
 
-    let audio_resource = LocalResource::new(
-        async move || Track::new(load_audio_buffer("./audio.wav").await.as_ref()).await,
-    );
+    let audio_resource: LocalResource<Track> = LocalResource::new(move || {
+        segment.get();
+        (async move |segment: LocalResource<Segment>| {
+            let bytes = match segment.await.audio {
+                common::Audio::None => vec![],
+                common::Audio::Wav(Wav::Raw(bytes)) => bytes,
+                common::Audio::Wav(_) => todo!(),
+                common::Audio::Ref(url) => helper::load_bytes(&url).await,
+            };
+            Track::new(&bytes).await
+        })(segment)
+    });
     let audio: RwSignal<Option<Track>> = RwSignal::new(None);
     Effect::new(move || {
         if let Some(r) = audio_resource.get() {
@@ -129,12 +168,10 @@ pub(crate) fn Reader() -> impl IntoView {
         }
     });
 
-    Effect::new(move || {
-        match (playing.get(), audio.get_untracked()) {
-            (true, Some(a)) => a.play(),
-            (false, Some(a)) => a.pause(),
-            _ => { },
-        }
+    Effect::new(move || match (playing.get(), audio.get_untracked()) {
+        (true, Some(a)) => a.play(),
+        (false, Some(a)) => a.pause(),
+        _ => {}
     });
 
     mview! {
