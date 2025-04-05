@@ -64,19 +64,27 @@ impl Track {
     }
 
     pub fn prepare(&self) {
-        self.inner.prepare();
+        self.inner.prepare()
     }
 
     pub fn play(&self) {
-        self.inner.play();
+        self.inner.play()
+    }
+
+    pub fn play_at(&self, offset: f64) {
+        self.inner.play_at(offset)
     }
 
     pub fn pause(&self) {
-        self.inner.pause();
+        self.inner.pause()
     }
 
     pub fn stop(&self) {
-        self.inner.stop();
+        self.inner.stop()
+    }
+
+    pub fn progress(&self) -> Option<f64> {
+        self.inner.progress()
     }
 }
 
@@ -105,7 +113,7 @@ impl TrackInner {
         Self { id }
     }
 
-    fn with_player_and_index<T: FnOnce(&mut AudioPlayer, usize)>(&self, f: T) {
+    fn with_player_and_index<T: FnOnce(&mut AudioPlayer, usize) -> R, R>(&self, f: T) -> R {
         AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
             let i = p
                 .tracks
@@ -113,15 +121,15 @@ impl TrackInner {
                 .enumerate()
                 .find_map(|t| if t.1.id == self.id { Some(t.0) } else { None })
                 .expect("failed to get internal index");
-            f(p, i);
-        });
+            f(p, i)
+        })
     }
 
-    fn with_internal_and_context<T: FnOnce(&mut TrackInternal, &mut AudioContext)>(&self, f: T) {
+    fn with_internal_and_context<T: FnOnce(&mut TrackInternal, &mut AudioContext) -> R, R>(&self, f: T) -> R {
         self.with_player_and_index(|p, i| {
             let mut internal = p.tracks.get_mut(i).expect("internal failure");
-            f(&mut internal, &mut p.context);
-        });
+            f(&mut internal, &mut p.context)
+        })
     }
 
     fn prepare(&self) {
@@ -137,6 +145,14 @@ impl TrackInner {
     }
 
     fn play(&self) {
+        self.internal_play(None);
+    }
+
+    fn play_at(&self, offset: f64) {
+        self.internal_play(Some(offset));
+    }
+
+    fn internal_play(&self, offset: Option<f64>) {
         self.prepare();
         self.with_internal_and_context(|i, c| {
             i.node
@@ -145,6 +161,9 @@ impl TrackInner {
                 .connect_with_audio_node(&c.destination())
                 .expect("failed to play");
             let start_time = c.current_time();
+            if let Some(o) = offset {
+                i.offset = o;
+            }
             i.node
                 .as_ref()
                 .expect("failed to play")
@@ -189,6 +208,15 @@ impl TrackInner {
                 logging::log!("stop done");
             }
         });
+    }
+
+    fn progress(&self) -> Option<f64>{
+        self.with_internal_and_context(|i, c| {
+            if !i.is_playing {
+                return None;
+            }
+            Some(c.current_time() - i.start_time)
+        })
     }
 
     fn internal_remove(&mut self) {

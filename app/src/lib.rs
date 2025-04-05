@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 pub mod shell;
 pub use shell::shell;
 

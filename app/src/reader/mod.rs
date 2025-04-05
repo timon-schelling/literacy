@@ -1,7 +1,7 @@
 use std::usize;
 
 use audio::Track;
-use common::{Segment, Wav};
+use common::{Segment, Wav, Word};
 use leptos::prelude::*;
 use leptos_mview::mview;
 use leptos_use::{UseIntervalOptions, UseIntervalReturn, use_interval_with_options};
@@ -52,16 +52,24 @@ pub(crate) fn Reader() -> impl IntoView {
         serde_json::from_str(helper::load_text("./segment.json").await.as_str()).expect("expected segment as json")
     });
 
-    let text = include_str!("../../../assets/text.txt");
-    let text = text
-        .split_whitespace()
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>();
-    let word_number = text.len();
-    let words_per_page = 100;
-    let pages_number = (word_number / words_per_page) + 1;
+    let words_resource = LocalResource::new(move || {
+        segment.get();
+        (async move |segment: LocalResource<Segment>| {
+            segment.await
+        })(segment)
+    });
+    let words: RwSignal<Vec<Word>> = RwSignal::new(vec![]);
+    Effect::new(move || {
+        if let Some(r) = words_resource.get() {
+            words.set(r.take().words);
+        }
+    });
+    let content: RwSignal<Vec<String>> = RwSignal::new(vec![]);
+    Effect::new(move || {
+        content.set(words.get().iter().map(|w| w.content.clone()).collect());
+    });
 
-    let audio_resource: LocalResource<Track> = LocalResource::new(move || {
+    let audio_resource = LocalResource::new(move || {
         segment.get();
         (async move |segment: LocalResource<Segment>| {
             let bytes = match segment.await.audio {
@@ -81,36 +89,10 @@ pub(crate) fn Reader() -> impl IntoView {
     });
 
     let page = RwSignal::new(0);
-    let text_offset = RwSignal::new(0);
-    Effect::new(move || {
-        let current_page = page.get();
-        if current_page >= pages_number {
-            page.set(pages_number - 1);
-        }
-        text_offset.set(current_page * words_per_page);
-    });
-
-    let text = RwSignal::new(text);
-
-    let content: RwSignal<Vec<String>> = RwSignal::new(vec![]);
-
-    Effect::new(move || {
-        let offset = text_offset.get();
-        let new = text
-            .get()
-            .into_iter()
-            .skip(offset)
-            .take(words_per_page)
-            .to_owned()
-            .collect::<Vec<String>>();
-        content.set(new);
-    });
 
     let content_length = RwSignal::new(0u32);
 
-    let progress_write = RwSignal::new(None);
-    let progress = progress_write.read_only();
-
+    let audio_progress: RwSignal<Option<f64>> = RwSignal::new(None);
     let UseIntervalReturn {
         counter,
         reset: counter_reset,
@@ -118,31 +100,31 @@ pub(crate) fn Reader() -> impl IntoView {
         resume: counter_resume,
         is_active: counter_is_active,
         ..
-    } = use_interval_with_options(350, UseIntervalOptions::default().immediate(false));
-    let counter_pause_clone = counter_pause.clone();
+    } = use_interval_with_options(10, UseIntervalOptions::default().immediate(true));
     Effect::new(move || {
         counter.get();
-        let mut content_length = content_length.get();
-        if content_length > 0 {
-            content_length -= 1;
-        }
-        if progress.get_untracked().unwrap_or(0) + 1 > content_length && content_length > 0 {
-            if page.get_untracked() >= pages_number - 1 {
-                counter_pause_clone();
-                progress_write.set(None);
-                return;
+        if let Some(audio) = audio.get() {
+            if let Some(ap) = audio.progress() {
+                audio_progress.set(Some(ap));
             }
-            page.update(|n| {
-                if *n < usize::MAX {
-                    *n += 1
+        }
+    });
+
+    let progress_write: RwSignal<Option<u32>> = RwSignal::new(None);
+    let progress = progress_write.read_only();
+    Effect::new(move || {
+        if let Some(ap) = audio_progress.get() {
+            let new_progress = words.get().iter().enumerate().find_map(|e| {
+                if e.1.start <= ap + 0.1 && e.1.end >= ap + 0.1 {
+                    Some(e.0 as u32)
+                } else {
+                    None
                 }
             });
-            return;
+            if new_progress != progress.get_untracked() && new_progress.is_some() {
+                progress_write.set(new_progress);
+            }
         }
-        if !counter_is_active.get() {
-            return;
-        }
-        progress_write.set(Some(progress.get_untracked().map_or(0, |c| c + 1)));
     });
 
     let content_clone = content.clone();
@@ -157,19 +139,25 @@ pub(crate) fn Reader() -> impl IntoView {
     });
 
     let playing = RwSignal::new(false);
-    Effect::new(move || match (playing.get(), counter_is_active.get()) {
-        (true, false) => counter_resume(),
-        (false, true) => counter_pause(),
-        _ => {}
-    });
-    Effect::new(move || {
-        if progress.get().is_none() {
-            playing.set(false)
-        }
-    });
+    // Effect::new(move || match (playing.get(), counter_is_active.get()) {
+    //     (true, false) => counter_resume(),
+    //     (false, true) => counter_pause(),
+    //     _ => {}
+    // });
+    // Effect::new(move || {
+    //     if progress.get().is_none() {
+    //         playing.set(false)
+    //     }
+    // });
 
     Effect::new(move || match (playing.get(), audio.get_untracked()) {
-        (true, Some(a)) => a.play(),
+        (true, Some(a)) => {
+            if let Some(p) = progress.get_untracked() && let Some(w) = words.get_untracked().get(p as usize) {
+                a.play_at(w.start);
+            } else {
+                a.play();
+            }
+        },
         (false, Some(a)) => a.pause(),
         _ => {}
     });
