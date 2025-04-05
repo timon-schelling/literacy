@@ -58,7 +58,9 @@ pub struct Track {
 
 impl Track {
     pub async fn new(source: &[u8]) -> Self {
-        Self { inner: Arc::new(TrackInner::new(source).await) }
+        Self {
+            inner: Arc::new(TrackInner::new(source).await),
+        }
     }
 
     pub fn prepare(&self) {
@@ -79,7 +81,7 @@ impl Track {
 }
 
 struct TrackInner {
-    id: [u8; 32]
+    id: [u8; 32],
 }
 
 impl TrackInner {
@@ -103,104 +105,94 @@ impl TrackInner {
         Self { id }
     }
 
-    fn prepare(&self) {
-        let i = self.internal_index();
+    fn with_player_and_index<T: FnOnce(&mut AudioPlayer, usize)>(&self, f: T) {
         AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
-            let internal = p
+            let i = p
                 .tracks
-                .get_mut(i)
-                .expect("failed to prepare");
-            if internal.node.is_some() {
+                .iter_mut()
+                .enumerate()
+                .find_map(|t| if t.1.id == self.id { Some(t.0) } else { None })
+                .expect("failed to get internal index");
+            f(p, i);
+        });
+    }
+
+    fn with_internal_and_context<T: FnOnce(&mut TrackInternal, &mut AudioContext)>(&self, f: T) {
+        self.with_player_and_index(|p, i| {
+            let mut internal = p.tracks.get_mut(i).expect("internal failure");
+            f(&mut internal, &mut p.context);
+        });
+    }
+
+    fn prepare(&self) {
+        self.with_internal_and_context(|i, c| {
+            if i.node.is_some() {
                 return;
             }
-            let node = p.context.create_buffer_source().expect("failed to create source");
-            node.set_buffer(Some(&internal.source));
-            internal.node = Some(node);
+            let node = c.create_buffer_source().expect("failed to create source");
+            node.set_buffer(Some(&i.source));
+            i.node = Some(node);
             logging::log!("prepare done");
         });
     }
 
     fn play(&self) {
         self.prepare();
-        let i = self.internal_index();
-        AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
-            let internal = p
-                .tracks
-                .get_mut(i)
-                .expect("failed to play");
-            internal
-                .node
+        self.with_internal_and_context(|i, c| {
+            i.node
                 .as_ref()
                 .expect("failed to play")
-                .connect_with_audio_node(&p.context.destination())
+                .connect_with_audio_node(&c.destination())
                 .expect("failed to play");
-            let start_time = p.context.current_time();
-            internal
-                .node
+            let start_time = c.current_time();
+            i.node
                 .as_ref()
                 .expect("failed to play")
-                .start_with_when_and_grain_offset(start_time, internal.offset)
+                .start_with_when_and_grain_offset(start_time, i.offset)
                 .expect("failed to play");
-            internal.start_time = start_time - internal.offset;
-            internal.is_playing = true;
+            i.start_time = start_time - i.offset;
+            i.is_playing = true;
             logging::log!("play done");
         });
     }
 
     fn pause(&self) {
-        let i = self.internal_index();
-        AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
-            let internal = p.tracks.get_mut(i).expect("failed to stop");
-            if !internal.is_playing {
+        self.with_internal_and_context(|i, c| {
+            if !i.is_playing {
                 return;
             }
-            if let Some(node) = &internal.node {
-                let current_time = p.context.current_time();
+            if let Some(node) = &i.node {
+                let current_time = c.current_time();
                 #[allow(deprecated)]
                 node.stop().expect("failed to stop");
                 node.disconnect().expect("failed to disconnect");
-                internal.offset = current_time - internal.start_time;
-                internal.is_playing = false;
-                internal.node = None;
+                i.offset = current_time - i.start_time;
+                i.is_playing = false;
+                i.node = None;
                 logging::log!("pause done");
             }
         });
     }
 
     fn stop(&self) {
-        let i = self.internal_index();
-        AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
-            let internal = p.tracks.get_mut(i).expect("failed to stop");
-            if !internal.is_playing {
+        self.with_internal_and_context(|i, _| {
+            if !i.is_playing {
                 return;
             }
-            if let Some(node) = &internal.node {
+            if let Some(node) = &i.node {
                 #[allow(deprecated)]
                 node.stop().expect("failed to stop");
                 node.disconnect().expect("failed to disconnect");
-                internal.offset = 0.0;
-                internal.is_playing = false;
-                internal.node = None;
+                i.offset = 0.0;
+                i.is_playing = false;
+                i.node = None;
                 logging::log!("stop done");
             }
         });
     }
 
-    fn internal_index(&self) -> usize {
-        AUDIO_PLAYER_INTERNAL
-            .with_borrow_mut(|p| {
-                p.tracks
-                    .iter_mut()
-                    .enumerate()
-                    .find_map(|t| if t.1.id == self.id { Some(t.0) } else { None })
-            })
-            .expect("failed to get internal index")
-    }
-
     fn internal_remove(&mut self) {
-        self.stop();
-        let i = self.internal_index();
-        AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
+        self.with_player_and_index(|p, i| {
             _ = p.tracks.swap_remove(i);
         });
         logging::log!("remove done");

@@ -13,6 +13,7 @@ whisperx --compute_type int8 --print_progress True --max_line_width 50 --segment
 
 let original = open assets/text.txt | split row " " | split row "\n" | str trim | filter { $in != "" }
 let processed = open audio.json | get word_segments | select word start end | rename content | enumerate | each { |e| $e.item | insert original ($original | get $e.index) | insert distance { |f| $e.item.content | str distance ($f.original) } }
+# Needs post-processing to work around falsely detected words
 let words = $processed | select original start end | rename content
 { "words": $words, audio: { "ref": "audio.wav" } } | save -f segment.json
 ```
