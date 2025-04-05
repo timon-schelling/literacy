@@ -2,7 +2,7 @@ use std::usize;
 
 use audio::Track;
 use common::{Segment, Wav, Word};
-use leptos::prelude::*;
+use leptos::{logging, prelude::*};
 use leptos_mview::mview;
 use leptos_use::{UseIntervalOptions, UseIntervalReturn, use_interval_with_options};
 
@@ -96,14 +96,14 @@ pub(crate) fn Reader() -> impl IntoView {
     let UseIntervalReturn {
         counter,
         reset: counter_reset,
-        pause: counter_pause,
-        resume: counter_resume,
-        is_active: counter_is_active,
         ..
     } = use_interval_with_options(10, UseIntervalOptions::default().immediate(true));
     Effect::new(move || {
-        counter.get();
-        if let Some(audio) = audio.get() {
+        if counter.get() >= u16::MAX as u64 {
+            logging::log!("reset counter");
+            counter_reset();
+        }
+        if let Some(audio) = audio.get_untracked() {
             if let Some(ap) = audio.progress() {
                 audio_progress.set(Some(ap));
             }
@@ -111,17 +111,19 @@ pub(crate) fn Reader() -> impl IntoView {
     });
 
     let progress_write: RwSignal<Option<u32>> = RwSignal::new(None);
+    let progress_from_audio: RwSignal<Option<u32>> = RwSignal::new(None);
     let progress = progress_write.read_only();
     Effect::new(move || {
         if let Some(ap) = audio_progress.get() {
             let new_progress = words.get().iter().enumerate().find_map(|e| {
-                if e.1.start <= ap + 0.1 && e.1.end >= ap + 0.1 {
+                if e.1.start <= ap && e.1.end >= ap {
                     Some(e.0 as u32)
                 } else {
                     None
                 }
             });
             if new_progress != progress.get_untracked() && new_progress.is_some() {
+                progress_from_audio.set(new_progress);
                 progress_write.set(new_progress);
             }
         }
@@ -135,10 +137,14 @@ pub(crate) fn Reader() -> impl IntoView {
     Effect::new(move || {
         content_clone.get();
         progress_write.update(move |o| *o = None);
-        counter_reset();
     });
 
     let playing = RwSignal::new(false);
+    Effect::new(move || {
+        if progress_from_audio.get_untracked() != progress.get() {
+            playing.set(false);
+        }
+    });
     // Effect::new(move || match (playing.get(), counter_is_active.get()) {
     //     (true, false) => counter_resume(),
     //     (false, true) => counter_pause(),
