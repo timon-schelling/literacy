@@ -53,7 +53,6 @@ pub(crate) fn Reader() -> impl IntoView {
     });
 
     let words_resource = LocalResource::new(move || {
-        segment.get();
         (async move |segment: LocalResource<Segment>| {
             segment.await
         })(segment)
@@ -70,21 +69,25 @@ pub(crate) fn Reader() -> impl IntoView {
     });
 
     let audio_resource = LocalResource::new(move || {
-        segment.get();
         (async move |segment: LocalResource<Segment>| {
-            let bytes = match segment.await.audio {
-                common::Audio::None => vec![],
-                common::Audio::Wav(Wav::Raw(bytes)) => bytes,
-                common::Audio::Wav(_) => todo!(),
-                common::Audio::Ref(url) => helper::load_bytes(&url).await,
-            };
-            Track::new(&bytes).await
+            let segment = segment.get();
+            if let Some(segment) = segment {
+                let bytes = match segment.take().audio {
+                    common::Audio::None => vec![],
+                    common::Audio::Wav(Wav::Raw(bytes)) => bytes,
+                    common::Audio::Wav(_) => todo!(),
+                    common::Audio::Ref(url) => helper::load_bytes(&url).await,
+                };
+                Some(Track::new(&bytes).await)
+            } else {
+                None
+            }
         })(segment)
     });
     let audio: RwSignal<Option<Track>> = RwSignal::new(None);
     Effect::new(move || {
-        if let Some(r) = audio_resource.get() {
-            audio.set(Some(r.take()));
+        if let Some(r) = audio_resource.get() && let Some(t) = r.take() {
+            audio.set(Some(t));
         }
     });
 
