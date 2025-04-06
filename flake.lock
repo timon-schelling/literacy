@@ -81,11 +81,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1743545224,
-        "narHash": "sha256-CpteexgFFLdGyX8lSSB5PgsXK0A5Hjqfkr2rA2suvAs=",
+        "lastModified": 1743934240,
+        "narHash": "sha256-dbAg9QSbxFpzK9w6fM5o9hAw9tUzbE9TRvwNHjqs/oM=",
         "owner": "timon-schelling",
         "repo": "timonos",
-        "rev": "03befae795ed764783da705664c5e0d7907e9b6f",
+        "rev": "156bc4c2f6396135cb5265247fee9e12c6252520",
         "type": "github"
       },
       "original": {

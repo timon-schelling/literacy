@@ -6,7 +6,7 @@
   outputs = { original, ... }: {
     nixosConfigurations.vm-dev = (original.nixosConfigurations.vm-dev-rust-leptos.extendModules {
       modules = [
-        ({ pkgs, ...}: {
+        ({ pkgs, lib, ...}: {
           environment.systemPackages = [
             pkgs.piper-tts
             pkgs.whisper-cpp
@@ -48,6 +48,39 @@
               {}
             )
           ];
+          vm.config.filesystem.disks = [
+            {
+              source = "target/vm.disk.qcow2";
+              tag = "target";
+              size = 30000;
+            }
+          ];
+
+          systemd.services.own-target-dir = {
+            wantedBy = [ "multi-user.target" ];
+            after = [ "local-fs.target" ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = ''
+                ${pkgs.coreutils}/bin/chown timon:users /home/timon/target
+              '';
+            };
+          };
+          fileSystems."/home/timon/target" = {
+            device = "/dev/disk/by-id/virtio-target";
+            fsType = "btrfs";
+            neededForBoot = true;
+            autoFormat = true;
+            options = [
+              "x-initrd.mount"
+              "defaults"
+              "x-systemd.requires=systemd-modules-load.service"
+            ];
+          };
+          home-manager.users.timon.programs.nushell.extraConfig = lib.mkAfter ''
+            $env.CARGO_TARGET_DIR = $"($env.HOME)/target"
+          '';
         })
       ];
     });

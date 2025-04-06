@@ -69,7 +69,6 @@ env = "DEV"
 bin-package = "server"
 lib-package = "frontend"
 
-site-root = "target/site"
 site-pkg-dir = "pkg"
 style-file = "style/main.scss"
 assets-dir = "assets"
