@@ -12,39 +12,50 @@
             pkgs.whisper-cpp
             pkgs.ffmpeg
             (pkgs.callPackage
-              (
-                { fetchFromGitHub, python3Packages }: python3Packages.buildPythonApplication {
-                  pname = "whisperx";
-                  version = "unstable-2025-04-04";
-                  src = fetchFromGitHub {
-                    owner = "m-bain";
-                    repo = "whisperX";
-                    rev = "f10dbf6ab1717e84db7733df9c0b21658ee68f9b";
-                    hash = "sha256-LUsUqpQ/Cm2lIPaUE751j7px8/+rm6n6icde+SBlDEE=";
-                  };
-                  doCheck = false;
-                  pyproject = true;
-                  build-system = with python3Packages; [
-                    setuptools
-                  ];
-                  dependencies = with python3Packages; [
-                    ctranslate2
-                    faster-whisper
-                    nltk
-                    numpy
-                    onnxruntime
-                    pandas
-                    pyannote-audio
-                    torch
-                    torchaudio
-                    transformers
-                  ];
-                  pythonRelaxDeps = [
-                    "onnxruntime"
-                    "torchaudio"
-                  ];
-                }
-              )
+              ({ fetchFromGitHub, python3Packages }: python3Packages.buildPythonApplication {
+                pname = "ctc-forced-aligner";
+                version = "unstable-2025-04-06";
+                src = fetchFromGitHub {
+                  owner = "MahmoudAshraf97";
+                  repo = "ctc-forced-aligner";
+                  rev = "201276a4ea2ddd3f5caead1ac4f211477ae3da6d";
+                  hash = "sha256-xReCGuOq3o/PawhFlkTW3BobMLR5tvucgUNY8crIOZQ=";
+                };
+                doCheck = false;
+                pyproject = true;
+                build-system = with python3Packages; [
+                  setuptools
+                ];
+                dependencies = with python3Packages; [
+                  nltk
+                  torch
+                  torchaudio
+                  transformers
+                  unidecode
+                ];
+              })
+              {}
+            )
+            (pkgs.callPackage
+              ({ fetchFromGitHub, python3Packages }: python3Packages.buildPythonApplication {
+                pname = "uroman";
+                version = "unstable-2025-04-06";
+                src = fetchFromGitHub {
+                  owner = "isi-nlp";
+                  repo = "uroman";
+                  rev = "86a196e363e98df2ba0e86b4ea690676519817f2";
+                  hash = "sha256-fusCo25gc2UCExAhU/UR+veoAw8y4UKza3l35FqPsnI=";
+                };
+                doCheck = false;
+                pyproject = true;
+                build-system = with python3Packages; [
+                  setuptools
+                ];
+                dependencies = with python3Packages; [
+                  regex
+                  hatchling
+                ];
+              })
               {}
             )
           ];
