@@ -48,14 +48,21 @@ mod helper {
 
 #[component]
 pub(crate) fn Reader() -> impl IntoView {
-    let segment: LocalResource<Segment> = LocalResource::new(async move || {
-        serde_json::from_str(helper::load_text("./segment.json").await.as_str()).expect("expected segment as json")
+    let page = RwSignal::new(0);
+
+    let segment: LocalResource<Segment> = LocalResource::new(move || {
+        (async move |page| {
+            serde_json::from_str(
+                helper::load_text(format!("./{}.json", page).as_str())
+                    .await
+                    .as_str(),
+            )
+            .expect("expected segment as json")
+        })(page.get())
     });
 
     let words_resource = LocalResource::new(move || {
-        (async move |segment: LocalResource<Segment>| {
-            segment.await
-        })(segment)
+        (async move |segment: LocalResource<Segment>| segment.await)(segment)
     });
     let words: RwSignal<Vec<Word>> = RwSignal::new(vec![]);
     Effect::new(move || {
@@ -86,12 +93,12 @@ pub(crate) fn Reader() -> impl IntoView {
     });
     let audio: RwSignal<Option<Track>> = RwSignal::new(None);
     Effect::new(move || {
-        if let Some(r) = audio_resource.get() && let Some(t) = r.take() {
+        if let Some(r) = audio_resource.get()
+            && let Some(t) = r.take()
+        {
             audio.set(Some(t));
         }
     });
-
-    let page = RwSignal::new(0);
 
     let content_length = RwSignal::new(0u32);
 
@@ -116,6 +123,20 @@ pub(crate) fn Reader() -> impl IntoView {
     let progress_write: RwSignal<Option<u32>> = RwSignal::new(None);
     let progress_from_audio: RwSignal<Option<u32>> = RwSignal::new(None);
     let progress = progress_write.read_only();
+
+    let playing = RwSignal::new(false);
+    Effect::new(move || {
+        if progress_from_audio.get_untracked() != progress.get() && progress.get().is_some() {
+            playing.set(false);
+        }
+    });
+    Effect::new(move || {
+        page.get();
+        if audio_progress.get_untracked().is_some() {
+            playing.set(false);
+        }
+    });
+
     Effect::new(move || {
         if let Some(ap) = audio_progress.get() {
             let new_progress = words.get().iter().enumerate().find_map(|e| {
@@ -128,6 +149,13 @@ pub(crate) fn Reader() -> impl IntoView {
             if new_progress != progress.get_untracked() && new_progress.is_some() {
                 progress_from_audio.set(new_progress);
                 progress_write.set(new_progress);
+            }
+            if let Some(last_word) = words.get_untracked().last()
+                && ap >= last_word.end + 0.3
+            {
+                audio.set(None);
+                audio_progress.set(None);
+                page.update(|n| if *n < usize::MAX { *n += 1 });
             }
         }
     });
@@ -142,12 +170,7 @@ pub(crate) fn Reader() -> impl IntoView {
         progress_write.update(move |o| *o = None);
     });
 
-    let playing = RwSignal::new(false);
-    Effect::new(move || {
-        if progress_from_audio.get_untracked() != progress.get() {
-            playing.set(false);
-        }
-    });
+
     // Effect::new(move || match (playing.get(), counter_is_active.get()) {
     //     (true, false) => counter_resume(),
     //     (false, true) => counter_pause(),
@@ -159,14 +182,16 @@ pub(crate) fn Reader() -> impl IntoView {
     //     }
     // });
 
-    Effect::new(move || match (playing.get(), audio.get_untracked()) {
+    Effect::new(move || match (playing.get(), audio.get()) {
         (true, Some(a)) => {
-            if let Some(p) = progress.get_untracked() && let Some(w) = words.get_untracked().get(p as usize) {
+            if let Some(p) = progress.get_untracked()
+                && let Some(w) = words.get_untracked().get(p as usize)
+            {
                 a.play_at(w.start);
             } else {
                 a.play();
             }
-        },
+        }
         (false, Some(a)) => a.pause(),
         _ => {}
     });
