@@ -48,7 +48,7 @@ mkdir $"($processing_dir)/segments"
 ls $"($processing_dir)/align" | get name | par-each {
     let name = $in | path basename | split row "." | first
     let words = open $in | select content start end
-    { audio: { "ref": $"($name).wav" }, "words": $words } | save -f $"($processing_dir)/segments/($name).json"
+    { audio: { "ref": $"($name).mp3" }, "words": $words } | save -f $"($processing_dir)/segments/($name).json"
 }
 
 try { rm -r $result_dir }
