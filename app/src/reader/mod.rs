@@ -1,7 +1,7 @@
 use std::usize;
 
 use audio::Track;
-use common::{Segment, Wav, Word};
+use common::{Segment, Text, Wav, Word};
 use leptos::{logging, prelude::*};
 use leptos_mview::mview;
 use leptos_use::{UseIntervalOptions, UseIntervalReturn, use_interval_with_options};
@@ -50,24 +50,22 @@ mod helper {
 pub(crate) fn Reader() -> impl IntoView {
     let page = RwSignal::new(0);
 
-    let segment: LocalResource<Segment> = LocalResource::new(move || {
-        (async move |page| {
-            serde_json::from_str(
-                helper::load_text(format!("./{}.json", page).as_str())
-                    .await
-                    .as_str(),
-            )
+    let text: LocalResource<Text> = LocalResource::new(async move || {
+        serde_json::from_str(helper::load_text("./text.json").await.as_str())
             .expect("expected segment as json")
-        })(page.get())
     });
 
-    let words_resource = LocalResource::new(move || {
-        (async move |segment: LocalResource<Segment>| segment.await)(segment)
+    let segment: RwSignal<Option<Segment>> = RwSignal::new(None);
+    Effect::new(move || {
+        if let Some(t) = text.get() {
+            segment.set(t.segments.get(page.get()).cloned());
+        }
     });
+
     let words: RwSignal<Vec<Word>> = RwSignal::new(vec![]);
     Effect::new(move || {
-        if let Some(r) = words_resource.get() {
-            words.set(r.take().words);
+        if let Some(s) = segment.get() {
+            words.set(s.words);
         }
     });
     let content: RwSignal<Vec<String>> = RwSignal::new(vec![]);
@@ -76,10 +74,9 @@ pub(crate) fn Reader() -> impl IntoView {
     });
 
     let audio_resource = LocalResource::new(move || {
-        (async move |segment: LocalResource<Segment>| {
-            let segment = segment.get();
+        (async move |segment: Option<Segment>| {
             if let Some(segment) = segment {
-                let bytes = match segment.take().audio {
+                let bytes = match segment.audio {
                     common::Audio::None => vec![],
                     common::Audio::Wav(Wav::Raw(bytes)) => bytes,
                     common::Audio::Wav(_) => todo!(),
@@ -89,7 +86,7 @@ pub(crate) fn Reader() -> impl IntoView {
             } else {
                 None
             }
-        })(segment)
+        })(segment.get())
     });
     let audio: RwSignal<Option<Track>> = RwSignal::new(None);
     Effect::new(move || {
@@ -138,6 +135,13 @@ pub(crate) fn Reader() -> impl IntoView {
     });
 
     Effect::new(move || {
+        if let Some(t) = text.get() && page.get() >= t.segments.len() {
+            page.set(t.segments.len() - 1);
+            playing.set(false);
+        }
+    });
+
+    Effect::new(move || {
         if let Some(ap) = audio_progress.get() {
             let new_progress = words.get().iter().enumerate().find_map(|e| {
                 if e.1.start <= ap && e.1.end >= ap {
@@ -155,7 +159,11 @@ pub(crate) fn Reader() -> impl IntoView {
             {
                 audio.set(None);
                 audio_progress.set(None);
-                page.update(|n| if *n < usize::MAX { *n += 1 });
+                page.update(|n| {
+                    if *n < usize::MAX {
+                        *n += 1
+                    }
+                });
             }
         }
     });
@@ -169,7 +177,6 @@ pub(crate) fn Reader() -> impl IntoView {
         content_clone.get();
         progress_write.update(move |o| *o = None);
     });
-
 
     // Effect::new(move || match (playing.get(), counter_is_active.get()) {
     //     (true, false) => counter_resume(),
