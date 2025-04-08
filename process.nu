@@ -56,6 +56,4 @@ mkdir $result_dir
 ls $"($processing_dir)/compressed" | get name | par-each {
     cp $in $result_dir
 }
-ls $"($processing_dir)/segments" | get name | par-each {
-    cp $in $result_dir
-}
+{ "segments": (ls $"($processing_dir)/segments" | sort-by name -n | get name | each { open $in }) } | save -f $"($result_dir)/text.json"
