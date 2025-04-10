@@ -55,6 +55,11 @@ fn Bar(
         div.bar {
             button {
                 Icon
+                    icon={icons::FaBackwardFastSolid}
+                    on:click={move |_| page.update(|n| if *n - 5 > usize::MIN { *n -= 5 })};
+            }
+            button {
+                Icon
                     icon={icons::FaBackwardStepSolid}
                     on:click={move |_| page.update(|n| if *n > usize::MIN { *n -= 1 })};
             }
@@ -63,6 +68,11 @@ fn Bar(
                 Icon
                     icon={icons::FaForwardStepSolid}
                     on:click={move |_| page.update(|n| if *n < usize::MAX { *n += 1 })};
+            }
+            button {
+                Icon
+                    icon={icons::FaForwardFastSolid}
+                    on:click={move |_| page.update(|n| if *n + 5 < usize::MAX { *n += 5 })};
             }
         }
     }
