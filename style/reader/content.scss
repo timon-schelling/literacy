@@ -1,0 +1,31 @@
+.content-container {
+    text-align: justify;
+    font-size: 1em;
+    display: flex;
+    justify-content: center;
+    margin: 0.8em;
+
+    .content {
+        max-width: max(40em, 40%);
+        line-height: 1.5;
+        color: #616161;
+        padding-bottom: 50vh;
+        padding-top: 50vh;
+
+        .segment {
+            &.active {
+                color: #c4c4c4;
+            }
+        }
+
+        .word {
+            border-radius: 0.25em;
+            &.active {
+                color: #c4c4c4;
+                background-color: #3c3c3c;
+                padding: 0.1em 0.2em;
+                margin: -0.1em -0.2em;
+            }
+        }
+    }
+}

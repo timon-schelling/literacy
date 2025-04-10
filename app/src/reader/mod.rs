@@ -11,11 +11,13 @@ mod helper;
 mod audio;
 
 mod controls;
+mod segment;
 mod pages;
 
 #[component]
 pub(crate) fn Reader() -> impl IntoView {
     let text: RwSignal<Option<Text>> = RwSignal::new(None);
+    let segments_content: RwSignal<Vec<Vec<String>>> = RwSignal::new(vec![]);
     let segment_index = RwSignal::new(0);
     let segment: RwSignal<Option<Segment>> = RwSignal::new(None);
     let words: RwSignal<Vec<Word>> = RwSignal::new(vec![]);
@@ -53,10 +55,23 @@ pub(crate) fn Reader() -> impl IntoView {
         ..
     } = use_interval(10);
 
+    let UseIntervalReturn {
+        counter: update_scroll_tick,
+        reset: update_scroll_tick_reset,
+        ..
+    } = use_interval(200);
+
     // load segment from text
     Effect::new(move || {
         if let Some(t) = text_resource.get() {
             text.set(Some(t.take()));
+        }
+    });
+
+    // load segment from text
+    Effect::new(move || {
+        if let Some(t) = text.get() {
+            segments_content.set(t.segments.iter().map(|s| s.words.iter().map(|w| w.content.clone()).collect()).collect());
         }
     });
 
@@ -103,6 +118,33 @@ pub(crate) fn Reader() -> impl IntoView {
             if let Some(ap) = audio.progress() {
                 audio_progress.set(Some(ap));
             }
+        }
+    });
+
+    // prevent update scroll tick overflow
+    Effect::new(move || {
+        if update_scroll_tick.get() >= u16::MAX as u64 {
+            logging::log!("reset update_tick");
+            update_scroll_tick_reset();
+        }
+    });
+
+    // scroll to current word
+    Effect::new(move || {
+        update_scroll_tick.get();
+        let element = if let Some(e) = document().get_elements_by_class_name("word active").item(0) {
+            Some(e)
+        } else if let Some(e) = document().get_elements_by_class_name("segment active").item(0) && !playing.get_untracked() {
+            Some(e)
+        } else {
+            None
+        };
+        if let Some(e) = element {
+            let options = leptos::web_sys::ScrollIntoViewOptions::new();
+            options.set_behavior(leptos::web_sys::ScrollBehavior::Smooth);
+            options.set_block(leptos::web_sys::ScrollLogicalPosition::Center);
+            options.set_inline(leptos::web_sys::ScrollLogicalPosition::Nearest);
+            e.scroll_into_view_with_scroll_into_view_options(&options);
         }
     });
 
@@ -195,7 +237,21 @@ pub(crate) fn Reader() -> impl IntoView {
     mview! {
         div.reader {
             controls::Controls page={segment_index} {playing} {progress} content_length={content_length.read_only()};
-            pages::Pages content={content.read_only()} highlight={progress.read_only()};
+            div.content-container {
+                div.content {
+                    {
+                        move || segments_content.get()
+                        .iter()
+                        .enumerate()
+                        .map(|(i, c)| {
+                            let is_active = segment_index.get() == i;
+                            mview! {
+                                segment::Segment text={c.clone()} active={is_active} highlight={progress.read_only()};
+                            }
+                        }).collect_view()
+                    }
+                }
+            }
         }
     }
 }

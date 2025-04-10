@@ -37,7 +37,9 @@ web-sys = { version = "0.3", features = [
   "DomException",
   "AudioDestinationNode",
   "BaseAudioContext",
-  "AudioNode"
+  "AudioNode",
+  "ScrollIntoViewOptions",
+  "ScrollLogicalPosition"
 ]}
 wasm-bindgen-futures = "0.4"
 
