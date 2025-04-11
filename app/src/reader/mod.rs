@@ -71,7 +71,7 @@ pub(crate) fn Reader() -> impl IntoView {
     // load segment from text
     Effect::new(move || {
         if let Some(t) = text.get() {
-            segments_content.set(t.segments.iter().map(|s| s.words.iter().map(|w| w.content.clone()).collect()).collect());
+            segments_content.set(t.segments.iter().map(|s| s.words.iter().map(|w| w.into()).collect()).collect());
         }
     });
 
@@ -91,7 +91,7 @@ pub(crate) fn Reader() -> impl IntoView {
 
     // collect content from words
     Effect::new(move || {
-        content.set(words.get().iter().map(|w| w.content.clone()).collect());
+        content.set(words.get().iter().map(|w| w.into()).collect());
     });
 
     // load audio from audio resource
@@ -152,7 +152,7 @@ pub(crate) fn Reader() -> impl IntoView {
     Effect::new(move || {
         if let Some(ap) = audio_progress.get() {
             let new_progress = words.get().iter().enumerate().find_map(|e| {
-                if e.1.start <= ap && e.1.end >= ap {
+                if let Word::Timestamped { start, end, .. } = e.1 && start <= &ap && end >= &ap {
                     Some(e.0 as u32)
                 } else {
                     None
@@ -193,8 +193,8 @@ pub(crate) fn Reader() -> impl IntoView {
     // automatically go to the next page
     Effect::new(move || {
         if let Some(ap) = audio_progress.get()
-            && let Some(last_word) = words.get_untracked().last()
-            && ap >= last_word.end + 0.3
+            && let Some(segment) = segment.get()
+            && ap >= segment.duration + 0.3
         {
             audio.set(None);
             audio_progress.set(None);
@@ -224,8 +224,9 @@ pub(crate) fn Reader() -> impl IntoView {
         (true, Some(a)) => {
             if let Some(p) = progress.get_untracked()
                 && let Some(w) = words.get_untracked().get(p as usize)
+                && let Word::Timestamped { start, .. } = w
             {
-                a.play_at(w.start);
+                a.play_at(*start);
             } else {
                 a.play();
             }

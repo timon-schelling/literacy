@@ -9,6 +9,7 @@ pub struct Text {
 pub struct Segment {
     pub words: Vec<Word>,
     pub audio: Audio,
+    pub duration: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -29,8 +30,30 @@ pub enum Wav {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Word {
-    pub content: String,
-    pub start: f64,
-    pub end: f64,
+#[serde(untagged)]
+pub enum Word {
+    Raw(String),
+    Timestamped {
+        content: String,
+        start: f64,
+        end: f64,
+    },
+}
+
+impl Into<String> for Word {
+    fn into(self) -> String {
+        match self {
+            Word::Raw(content) => content,
+            Word::Timestamped { content, .. } => content,
+        }
+    }
+}
+
+impl Into<String> for &Word {
+    fn into(self) -> String {
+        match self {
+            Word::Raw(content) => content.clone(),
+            Word::Timestamped { content, .. } => content.clone(),
+        }
+    }
 }
