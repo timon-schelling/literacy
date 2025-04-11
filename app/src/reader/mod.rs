@@ -12,7 +12,6 @@ mod audio;
 
 mod controls;
 mod segment;
-mod pages;
 
 #[component]
 pub(crate) fn Reader() -> impl IntoView {
