@@ -56,7 +56,9 @@ fn Bar(
             button {
                 Icon
                     icon={icons::FaBackwardFastSolid}
-                    on:click={move |_| page.update(|n| if *n - 5 > usize::MIN { *n -= 5 })};
+                    on:click={move |_| page.update(
+                        |n| if *n > usize::MIN + 5 { *n -= 5 } else { *n = usize::MIN }
+                    )};
             }
             button {
                 Icon
@@ -72,7 +74,9 @@ fn Bar(
             button {
                 Icon
                     icon={icons::FaForwardFastSolid}
-                    on:click={move |_| page.update(|n| if *n + 5 < usize::MAX { *n += 5 })};
+                    on:click={move |_| page.update(
+                        |n| if *n < usize::MAX - 5 { *n += 5 } else { *n = usize::MAX }
+                    )};
             }
         }
     }
