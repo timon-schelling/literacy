@@ -71,7 +71,12 @@ pub(crate) fn Reader() -> impl IntoView {
     // load segment from text
     Effect::new(move || {
         if let Some(t) = text.get() {
-            segments_content.set(t.segments.iter().map(|s| s.words.iter().map(|w| w.into()).collect()).collect());
+            segments_content.set(
+                t.segments
+                    .iter()
+                    .map(|s| s.words.iter().map(|w| w.into()).collect())
+                    .collect(),
+            );
         }
     });
 
@@ -132,12 +137,18 @@ pub(crate) fn Reader() -> impl IntoView {
     // scroll to current word
     Effect::new(move || {
         update_scroll_tick.get();
-        let element = if let Some(e) = document().get_elements_by_class_name("word active").item(0) {
-            Some(e)
-        } else if let Some(e) = document().get_elements_by_class_name("segment active").item(0) && !playing.get_untracked() {
-            Some(e)
-        } else {
-            None
+        let element = {
+            if let Some(e) = document().get_elements_by_class_name("word active").item(0) {
+                Some(e)
+            } else if let Some(e) = document()
+                .get_elements_by_class_name("segment active")
+                .item(0)
+                && !playing.get_untracked()
+            {
+                Some(e)
+            } else {
+                None
+            }
         };
         if let Some(e) = element {
             let options = leptos::web_sys::ScrollIntoViewOptions::new();
@@ -152,7 +163,10 @@ pub(crate) fn Reader() -> impl IntoView {
     Effect::new(move || {
         if let Some(ap) = audio_progress.get() {
             let new_progress = words.get().iter().enumerate().find_map(|e| {
-                if let Word::Timestamped { start, end, .. } = e.1 && start <= &ap && end >= &ap {
+                if let Word::Timestamped { start, end, .. } = e.1
+                    && start <= &ap
+                    && end >= &ap
+                {
                     Some(e.0 as u32)
                 } else {
                     None

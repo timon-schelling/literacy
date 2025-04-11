@@ -113,7 +113,10 @@ impl TrackInner {
         Self { id }
     }
 
-    fn with_player_and_index<T: FnOnce(&mut AudioPlayer, usize) -> R, R>(&self, f: T) -> R {
+    fn with_player_and_index<T, R>(&self, f: T) -> R
+    where
+        T: FnOnce(&mut AudioPlayer, usize) -> R,
+    {
         AUDIO_PLAYER_INTERNAL.with_borrow_mut(|p| {
             let i = p
                 .tracks
@@ -125,7 +128,10 @@ impl TrackInner {
         })
     }
 
-    fn with_internal_and_context<T: FnOnce(&mut TrackInternal, &mut AudioContext) -> R, R>(&self, f: T) -> R {
+    fn with_internal_and_context<T, R>(&self, f: T) -> R
+    where
+        T: FnOnce(&mut TrackInternal, &mut AudioContext) -> R,
+    {
         self.with_player_and_index(|p, i| {
             let mut internal = p.tracks.get_mut(i).expect("internal failure");
             f(&mut internal, &mut p.context)
@@ -210,7 +216,7 @@ impl TrackInner {
         });
     }
 
-    fn progress(&self) -> Option<f64>{
+    fn progress(&self) -> Option<f64> {
         self.with_internal_and_context(|i, c| {
             if !i.is_playing {
                 return None;
