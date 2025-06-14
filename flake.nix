@@ -59,7 +59,7 @@
               {}
             )
           ];
-          vm.config.filesystem.disks = [
+          contain.config.filesystem.disks = [
             {
               source = "target/vm.disk.qcow2";
               tag = "target";
@@ -74,11 +74,11 @@
               Type = "oneshot";
               RemainAfterExit = true;
               ExecStart = ''
-                ${pkgs.coreutils}/bin/chown timon:users /home/timon/target
+                ${pkgs.coreutils}/bin/chown user:users /home/user/target
               '';
             };
           };
-          fileSystems."/home/timon/target" = {
+          fileSystems."/home/user/target" = {
             device = "/dev/disk/by-id/virtio-target";
             fsType = "btrfs";
             neededForBoot = true;
@@ -89,7 +89,7 @@
               "x-systemd.requires=systemd-modules-load.service"
             ];
           };
-          home-manager.users.timon.programs.nushell.extraConfig = lib.mkAfter ''
+          home-manager.users.user.programs.nushell.extraConfig = lib.mkAfter ''
             $env.CARGO_TARGET_DIR = $"($env.HOME)/target"
           '';
         })
